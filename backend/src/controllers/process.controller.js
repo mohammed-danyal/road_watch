@@ -352,8 +352,3 @@ exports.processAnalysis = async (req, res) => {
   }
 };
 
-  } catch (error) {
-  console.error('Analysis error:', error);
-  res.status(500).json({ error: 'Server error processing analysis' });
-}
-};
