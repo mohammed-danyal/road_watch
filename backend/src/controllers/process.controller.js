@@ -97,8 +97,8 @@ const toDateString = (dateVal) => {
 exports.processAnalysis = async (req, res) => {
   try {
     // ── Step 1 & 2: Receive coordinates + optional location string from frontend ──
-    const lat           = parseFloat(req.body.lat);
-    const lng           = parseFloat(req.body.lng);
+    const lat = parseFloat(req.body.lat);
+    const lng = parseFloat(req.body.lng);
     const locationString = req.body.locationString || null;
 
     if (!lat || !lng) {
@@ -107,7 +107,7 @@ exports.processAnalysis = async (req, res) => {
 
     // ── Step 4: Call Nominatim API (Primary) to detect road type and name ──
     let highwayTag = 'unknown';
-    let roadName   = 'Unnamed Road';
+    let roadName = 'Unnamed Road';
     let nominatimSuccess = false;
 
     try {
@@ -160,7 +160,7 @@ exports.processAnalysis = async (req, res) => {
       if (overpassData && overpassData.elements.length > 0) {
         const tags = overpassData.elements[0].tags;
         highwayTag = tags.highway || 'unknown';
-        roadName   = tags.name || tags['name:en'] || tags['name:local'] || 'Unnamed Road';
+        roadName = tags.name || tags['name:en'] || tags['name:local'] || 'Unnamed Road';
         console.info(`✅ Overpass fallback success: "${roadName}" (${highwayTag})`);
       } else {
         console.warn('⚠️ All Overpass API mirrors also failed or returned empty results, using default values.');
@@ -187,21 +187,21 @@ exports.processAnalysis = async (req, res) => {
 
         // Attach the image buffer received from the frontend
         formData.append('image', req.file.buffer, {
-          filename:    req.file.originalname || 'road-image.jpg',
-          contentType: req.file.mimetype     || 'image/jpeg'
+          filename: req.file.originalname || 'road-image.jpg',
+          contentType: req.file.mimetype || 'image/jpeg'
         });
 
         // Provide road context from Overpass + MongoDB to the AI
-        const authority        = roadInfo?.authority || 'Local Municipal Corporations';
+        const authority = roadInfo?.authority || 'Local Municipal Corporations';
         const lastRelayingDate = roadInfo?.lastRelayingDate
           ? toDateString(roadInfo.lastRelayingDate)
           : toDateString(new Date());
 
-        formData.append('location',          locationString || `${lat},${lng}`);
-        formData.append('authority',         authority);
-        formData.append('road_type',         mappedRoadType);
+        formData.append('location', locationString || `${lat},${lng}`);
+        formData.append('authority', authority);
+        formData.append('road_type', mappedRoadType);
         formData.append('last_relaying_date', lastRelayingDate);
-        formData.append('support_count',     '1');
+        formData.append('support_count', '1');
 
         const aiRes = await axiosWithRetry({
           method: 'post',
@@ -222,9 +222,9 @@ exports.processAnalysis = async (req, res) => {
     }
 
     // ── Fallback AI values if AI service is unavailable or no image was sent ──
-    const issueType  = aiResult?.damage_type   || 'Unknown';
-    const severity   = aiResult?.severity      || 'Unknown';
-    const condition  = aiResult?.severity      || 'Unknown';
+    const issueType = aiResult?.damage_type || 'Unknown';
+    const severity = aiResult?.severity || 'Unknown';
+    const condition = aiResult?.severity || 'Unknown';
 
     // ── Duplicate Issue Detection & Proximity Logic ──
     // Detect if there's a location within ~150 meters (0.0015 delta)
@@ -262,32 +262,32 @@ exports.processAnalysis = async (req, res) => {
         duplicateDetected: true,
         message: "This issue has already been reported.\nYour submission has been counted as a support vote for this issue.",
         data: {
-          _id:              existingComplaint._id,
-          id:               `#RW-${existingComplaint._id.toString().slice(-4).toUpperCase()}`,
-          location:         matchedLoc.location || locationString || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+          _id: existingComplaint._id,
+          id: `#RW-${existingComplaint._id.toString().slice(-4).toUpperCase()}`,
+          location: matchedLoc.location || locationString || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
           roadName,
           highwayTag,
-          roadType:         mappedRoadType,
+          roadType: mappedRoadType,
           detailedClassification,
-          contractor:       roadInfo?.contractor      || 'Unknown',
-          budgetAllocated:  roadInfo?.budgetAllocated || 'N/A',
-          amountSpent:      roadInfo?.amountSpent     || 'N/A',
+          contractor: roadInfo?.contractor || 'Unknown',
+          budgetAllocated: roadInfo?.budgetAllocated || 'N/A',
+          amountSpent: roadInfo?.amountSpent || 'N/A',
           lastRelayingDate: roadInfo?.lastRelayingDate || 'N/A',
-          authority:        roadInfo?.authority       || 'Unknown',
+          authority: roadInfo?.authority || 'Unknown',
           issueType,
-          severity:         existingComplaint.severity || severity,
-          condition:        existingComplaint.condition || condition,
-          roadDamage:       issueType,
-          confidence:       aiResult?.confidence              ?? null,
-          priorityLevel:    aiResult?.priority_level          || null,
-          priorityScore:    aiResult?.priority_score_normalized ?? null,
-          severityScore:    aiResult?.severity_score           ?? null,
-          roadHealthIndex:  aiResult?.road_health_index        ?? null,
-          summary:          aiResult?.summary                  || null,
-          report:           aiResult?.report                   || null,
-          aiConnected:      aiResult !== null,
-          supportCount:     existingComplaint.supportCount,
-          status:           existingComplaint.status || 'Pending'
+          severity: existingComplaint.severity || severity,
+          condition: existingComplaint.condition || condition,
+          roadDamage: issueType,
+          confidence: aiResult?.confidence ?? null,
+          priorityLevel: aiResult?.priority_level || null,
+          priorityScore: aiResult?.priority_score_normalized ?? null,
+          severityScore: aiResult?.severity_score ?? null,
+          roadHealthIndex: aiResult?.road_health_index ?? null,
+          summary: aiResult?.summary || null,
+          report: aiResult?.report || null,
+          aiConnected: aiResult !== null,
+          supportCount: existingComplaint.supportCount,
+          status: existingComplaint.status || 'Pending'
         }
       });
     }
@@ -317,32 +317,32 @@ exports.processAnalysis = async (req, res) => {
       success: true,
       duplicateDetected: false,
       data: {
-        _id:              newComplaint._id,
-        id:               `#RW-${newComplaint._id.toString().slice(-4).toUpperCase()}`,
-        location:         locationString || null,
+        _id: newComplaint._id,
+        id: `#RW-${newComplaint._id.toString().slice(-4).toUpperCase()}`,
+        location: locationString || null,
         roadName,
         highwayTag,
-        roadType:         mappedRoadType,
+        roadType: mappedRoadType,
         detailedClassification,
-        contractor:       roadInfo?.contractor      || 'Unknown',
-        budgetAllocated:  roadInfo?.budgetAllocated || 'N/A',
-        amountSpent:      roadInfo?.amountSpent     || 'N/A',
+        contractor: roadInfo?.contractor || 'Unknown',
+        budgetAllocated: roadInfo?.budgetAllocated || 'N/A',
+        amountSpent: roadInfo?.amountSpent || 'N/A',
         lastRelayingDate: roadInfo?.lastRelayingDate || 'N/A',
-        authority:        roadInfo?.authority       || 'Unknown',
+        authority: roadInfo?.authority || 'Unknown',
         issueType,
         severity,
         condition,
-        roadDamage:              issueType,
-        confidence:              aiResult?.confidence              ?? null,
-        priorityLevel:           aiResult?.priority_level          || null,
-        priorityScore:           aiResult?.priority_score_normalized ?? null,
-        severityScore:           aiResult?.severity_score           ?? null,
-        roadHealthIndex:         aiResult?.road_health_index        ?? null,
-        summary:                 aiResult?.summary                  || null,
-        report:                  aiResult?.report                   || null,
-        aiConnected:             aiResult !== null,
-        supportCount:            1,
-        status:                  'Pending'
+        roadDamage: issueType,
+        confidence: aiResult?.confidence ?? null,
+        priorityLevel: aiResult?.priority_level || null,
+        priorityScore: aiResult?.priority_score_normalized ?? null,
+        severityScore: aiResult?.severity_score ?? null,
+        roadHealthIndex: aiResult?.road_health_index ?? null,
+        summary: aiResult?.summary || null,
+        report: aiResult?.report || null,
+        aiConnected: aiResult !== null,
+        supportCount: 1,
+        status: 'Pending'
       }
     });
 
@@ -350,4 +350,10 @@ exports.processAnalysis = async (req, res) => {
     console.error('Analysis error:', error);
     res.status(500).json({ error: 'Server error processing analysis' });
   }
+};
+
+  } catch (error) {
+  console.error('Analysis error:', error);
+  res.status(500).json({ error: 'Server error processing analysis' });
+}
 };

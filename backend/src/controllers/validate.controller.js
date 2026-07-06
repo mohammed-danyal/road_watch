@@ -50,8 +50,8 @@ exports.validateRoadImage = async (req, res) => {
     // Forward image buffer to the FastAPI validation endpoint
     const formData = new FormData();
     formData.append('image', req.file.buffer, {
-      filename:    req.file.originalname || 'upload.jpg',
-      contentType: req.file.mimetype     || 'image/jpeg',
+      filename: req.file.originalname || 'upload.jpg',
+      contentType: req.file.mimetype || 'image/jpeg',
     });
 
     const aiRes = await axiosWithRetry({
@@ -65,22 +65,22 @@ exports.validateRoadImage = async (req, res) => {
     const { is_valid, class_name, confidence, message } = aiRes.data;
 
     return res.json({
-      success:    true,
-      isValid:    is_valid,
-      className:  class_name,
+      success: true,
+      isValid: is_valid,
+      className: class_name,
       confidence: confidence,
-      message:    message,
+      message: message,
     });
 
   } catch (err) {
     // AI service unavailable → fail-open so existing workflow is unaffected
     console.warn('⚠️  Image validation service unavailable, allowing through:', err.message);
     return res.json({
-      success:   true,
-      isValid:   true,
+      success: true,
+      isValid: true,
       className: 'unknown',
       confidence: 0,
-      message:   'Validation service unavailable — proceeding.',
+      message: 'Validation service unavailable — proceeding.',
     });
   }
 };
