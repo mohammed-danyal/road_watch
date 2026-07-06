@@ -7,6 +7,33 @@ const RoadDamage = require('../models/RoadDamage');
 const AI_SERVICE_BASE = process.env.AI_SERVICE_URL ? process.env.AI_SERVICE_URL.replace(/\/api\/v1\/analyze\/?$/, '') : 'http://localhost:8000';
 const AI_SERVICE_URL = `${AI_SERVICE_BASE}/api/v1/analyze`;
 
+// Retry helper with exponential backoff for 429 (rate-limit) and 5xx errors
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const axiosWithRetry = async (config, { maxRetries = 3, baseDelayMs = 2000 } = {}) => {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await axios(config);
+    } catch (err) {
+      const status = err.response?.status;
+      const isRetryable = status === 429 || (status >= 500 && status < 600);
+
+      if (!isRetryable || attempt === maxRetries) {
+        throw err;
+      }
+
+      // Respect Retry-After header if present, otherwise use exponential backoff
+      const retryAfter = err.response?.headers?.['retry-after'];
+      const delayMs = retryAfter
+        ? parseInt(retryAfter, 10) * 1000
+        : baseDelayMs * Math.pow(2, attempt);
+
+      console.warn(`⏳ AI service returned ${status}, retrying in ${delayMs / 1000}s (attempt ${attempt + 1}/${maxRetries})...`);
+      await sleep(delayMs);
+    }
+  }
+};
+
 // Maps Overpass highway tag → human-readable road type (matching the 6-category database schema)
 const mapRoadType = (highwayTag) => {
   const tag = (highwayTag || '').toLowerCase().trim();
@@ -176,7 +203,10 @@ exports.processAnalysis = async (req, res) => {
         formData.append('last_relaying_date', lastRelayingDate);
         formData.append('support_count',     '1');
 
-        const aiRes = await axios.post(AI_SERVICE_URL, formData, {
+        const aiRes = await axiosWithRetry({
+          method: 'post',
+          url: AI_SERVICE_URL,
+          data: formData,
           headers: { ...formData.getHeaders() },
           timeout: 90000 // 90 s — allow Render AI service to wake up from cold start
         });

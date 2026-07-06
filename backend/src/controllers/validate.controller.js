@@ -4,6 +4,32 @@ const FormData = require('form-data');
 const AI_SERVICE_BASE = process.env.AI_SERVICE_URL ? process.env.AI_SERVICE_URL.replace(/\/api\/v1\/analyze\/?$/, '') : 'http://localhost:8000';
 const AI_VALIDATE_URL = `${AI_SERVICE_BASE}/api/v1/validate-road-image`;
 
+// Retry helper with exponential backoff for 429 (rate-limit) and 5xx errors
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const axiosWithRetry = async (config, { maxRetries = 3, baseDelayMs = 2000 } = {}) => {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await axios(config);
+    } catch (err) {
+      const status = err.response?.status;
+      const isRetryable = status === 429 || (status >= 500 && status < 600);
+
+      if (!isRetryable || attempt === maxRetries) {
+        throw err;
+      }
+
+      const retryAfter = err.response?.headers?.['retry-after'];
+      const delayMs = retryAfter
+        ? parseInt(retryAfter, 10) * 1000
+        : baseDelayMs * Math.pow(2, attempt);
+
+      console.warn(`⏳ Validation service returned ${status}, retrying in ${delayMs / 1000}s (attempt ${attempt + 1}/${maxRetries})...`);
+      await sleep(delayMs);
+    }
+  }
+};
+
 /**
  * Validate whether the uploaded image is road/infrastructure related.
  *
@@ -28,7 +54,10 @@ exports.validateRoadImage = async (req, res) => {
       contentType: req.file.mimetype     || 'image/jpeg',
     });
 
-    const aiRes = await axios.post(AI_VALIDATE_URL, formData, {
+    const aiRes = await axiosWithRetry({
+      method: 'post',
+      url: AI_VALIDATE_URL,
+      data: formData,
       headers: { ...formData.getHeaders() },
       timeout: 60000, // 60 s — allow Render AI service to wake up from cold start
     });
