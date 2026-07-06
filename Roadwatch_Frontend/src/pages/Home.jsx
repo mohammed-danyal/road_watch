@@ -292,7 +292,7 @@ Road Transparency & Accountability System`;
 
       const validationRes = await fetch(`${apiUrl}/api/validate-image`, {
         method: 'POST',
-        body:   validationForm,
+        body: validationForm,
       });
 
       if (validationRes.ok) {
