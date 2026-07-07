@@ -179,6 +179,10 @@ exports.processAnalysis = async (req, res) => {
     const roadInfo = matchingRoadData.length > 0 ? matchingRoadData[0] : null;
 
     // ── Step 7: Forward image to Real AI Service (FastAPI + YOLOv8) ──
+    // IMPORTANT: AI analysis is fully isolated — any failure here (429, timeout,
+    // network error, FormData construction error, response parsing error) ONLY
+    // affects AI-related fields. GPS processing, road classification, MongoDB
+    // lookups, and all transparency data continue regardless.
     let aiResult = null;
 
     if (req.file && req.file.buffer) {
@@ -215,16 +219,32 @@ exports.processAnalysis = async (req, res) => {
         console.log(`✅ AI analysis complete — damage: ${aiResult.damage_type}, severity: ${aiResult.severity}`);
 
       } catch (aiErr) {
-        console.error('⚠️  AI service error (using fallback):', aiErr.message);
+        // AI failure is non-fatal: log and continue with fallback AI values.
+        // Road transparency data (contractor, authority, budget, relaying date)
+        // is NEVER affected by AI failures — it comes from MongoDB, not AI.
+        const statusCode = aiErr.response?.status;
+        const reason = statusCode
+          ? `HTTP ${statusCode}${statusCode === 429 ? ' (rate limited)' : ''}`
+          : (aiErr.code === 'ECONNABORTED' ? 'timeout' : aiErr.code || 'unavailable');
+        console.error(`⚠️  AI service error [${reason}] — using fallback AI values. Road transparency data unaffected.`);
+        console.error(`   AI error details: ${aiErr.message}`);
+        // aiResult remains null → fallback AI values will be used below
       }
     } else {
-      console.warn('⚠️  No image received — AI analysis skipped');
+      console.warn('⚠️  No image received — AI analysis skipped. Road transparency data unaffected.');
     }
 
     // ── Fallback AI values if AI service is unavailable or no image was sent ──
+    // ONLY these AI-derived fields use fallback defaults. All non-AI fields
+    // (roadInfo, contractor, authority, budget, lastRelayingDate) continue to
+    // use real values fetched from MongoDB in Step 6 above.
     const issueType = aiResult?.damage_type || 'Unknown';
     const severity = aiResult?.severity || 'Unknown';
     const condition = aiResult?.severity || 'Unknown';
+
+    if (!aiResult) {
+      console.info('ℹ️  AI fallback active — using default AI values (damage: Unknown, severity: Unknown). Continuing with real road transparency data from MongoDB.');
+    }
 
     // ── Duplicate Issue Detection & Proximity Logic ──
     // Detect if there's a location within ~150 meters (0.0015 delta)
