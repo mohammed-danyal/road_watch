@@ -268,9 +268,17 @@ exports.processAnalysis = async (req, res) => {
     if (existingComplaint) {
       // Duplicate detected! Increment existing complaint supportCount/vote
       existingComplaint.supportCount = (existingComplaint.supportCount || 1) + 1;
-      if (!existingComplaint.roadDamage) existingComplaint.roadDamage = issueType;
-      if (!existingComplaint.roadType) existingComplaint.roadType = mappedRoadType;
-      if (!existingComplaint.authority) existingComplaint.authority = roadInfo?.authority || 'Local Municipal Corporations';
+
+      // ── Refresh existing complaint with latest verified data ──
+      // Always update road condition and infrastructure fields so the
+      // complaint record stays current. Preserved: _id, locationId,
+      // submittedDate, status (these are never overwritten).
+      existingComplaint.issueType  = issueType;
+      existingComplaint.severity   = severity;
+      existingComplaint.condition  = condition;
+      existingComplaint.roadDamage = issueType;
+      existingComplaint.roadType   = mappedRoadType;
+      existingComplaint.authority  = roadInfo?.authority || existingComplaint.authority || 'Local Municipal Corporations';
       await existingComplaint.save();
 
       const matchedLoc = nearbyLocations.find(l => l._id.toString() === existingComplaint.locationId.toString()) || {};
