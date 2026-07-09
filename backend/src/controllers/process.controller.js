@@ -279,6 +279,13 @@ exports.processAnalysis = async (req, res) => {
       existingComplaint.roadDamage = issueType;
       existingComplaint.roadType   = mappedRoadType;
       existingComplaint.authority  = roadInfo?.authority || existingComplaint.authority || 'Local Municipal Corporations';
+      existingComplaint.contractor      = roadInfo?.contractor || existingComplaint.contractor || 'Unknown';
+      existingComplaint.budgetAllocated = roadInfo?.budgetAllocated || existingComplaint.budgetAllocated || 'N/A';
+      existingComplaint.amountSpent     = roadInfo?.amountSpent || existingComplaint.amountSpent || 'N/A';
+      existingComplaint.lastRelayingDate = roadInfo?.lastRelayingDate || existingComplaint.lastRelayingDate || null;
+      existingComplaint.roadName        = roadName || existingComplaint.roadName || 'Unnamed Road';
+      existingComplaint.confidence      = aiResult?.confidence ?? existingComplaint.confidence ?? null;
+      existingComplaint.updatedAt       = new Date();
       await existingComplaint.save();
 
       const matchedLoc = nearbyLocations.find(l => l._id.toString() === existingComplaint.locationId.toString()) || {};
@@ -337,7 +344,14 @@ exports.processAnalysis = async (req, res) => {
       supportCount: 1,
       status: 'Pending',
       authority: roadInfo?.authority || 'Local Municipal Corporations',
-      submittedDate: new Date()
+      submittedDate: new Date(),
+      contractor:      roadInfo?.contractor || 'Unknown',
+      budgetAllocated: roadInfo?.budgetAllocated || 'N/A',
+      amountSpent:     roadInfo?.amountSpent || 'N/A',
+      lastRelayingDate: roadInfo?.lastRelayingDate || null,
+      roadName:        roadName || 'Unnamed Road',
+      confidence:      aiResult?.confidence ?? null,
+      updatedAt:       new Date()
     });
 
     // Return combined response to frontend

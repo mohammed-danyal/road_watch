@@ -11,7 +11,14 @@ const roadDamageSchema = new mongoose.Schema({
   supportCount: { type: Number, default: 1 },
   status:       { type: String, default: 'Pending' },
   authority:    { type: String },
-  submittedDate: { type: Date, default: Date.now }
+  submittedDate: { type: Date, default: Date.now },
+  contractor:      { type: String },
+  budgetAllocated: { type: String },
+  amountSpent:     { type: String },
+  lastRelayingDate:{ type: Date },
+  roadName:        { type: String },
+  confidence:      { type: Number },
+  updatedAt:       { type: Date }
 }, { collection: 'roaddamage' });
 
 module.exports = aiDB.model('RoadDamage', roadDamageSchema);

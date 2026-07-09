@@ -58,7 +58,14 @@ router.get('/reports', async (req, res) => {
         authority:    d.authority    || 'Local Municipal Corporations',
         submittedDate: d.submittedDate || loc.timestamp || new Date(),
         severity:     d.severity     || 'Unknown',
-        condition:    d.condition    || 'Unknown'
+        condition:    d.condition    || 'Unknown',
+        contractor:      d.contractor      || 'Unknown',
+        budgetAllocated: d.budgetAllocated || 'N/A',
+        amountSpent:     d.amountSpent     || 'N/A',
+        lastRelayingDate: d.lastRelayingDate || null,
+        roadName:        d.roadName        || 'Unnamed Road',
+        confidence:      d.confidence      ?? null,
+        updatedAt:       d.updatedAt       || null
       };
     });
 

@@ -278,15 +278,15 @@ Road Transparency & Accountability System`;
             <div className="space-y-4">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500">Contractor Name</span>
-                <span className="font-semibold text-slate-800 dark:text-white">Local Road Contractor</span>
+                <span className="font-semibold text-slate-800 dark:text-white">{report.contractor || 'Unknown'}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500">Budget Allocated</span>
-                <span className="font-semibold text-slate-800 dark:text-white">₹50 Lakhs</span>
+                <span className="font-semibold text-slate-800 dark:text-white">{report.budgetAllocated || 'N/A'}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500">Amount Spent</span>
-                <span className="font-semibold text-slate-800 dark:text-white">₹42 Lakhs</span>
+                <span className="font-semibold text-slate-800 dark:text-white">{report.amountSpent || 'N/A'}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500">Road Type</span>
