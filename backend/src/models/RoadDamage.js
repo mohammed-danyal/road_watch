@@ -18,7 +18,9 @@ const roadDamageSchema = new mongoose.Schema({
   lastRelayingDate:{ type: Date },
   roadName:        { type: String },
   confidence:      { type: Number },
-  updatedAt:       { type: Date }
+  updatedAt:       { type: Date },
+  testScore:       { type: Number },
+  fullAddress:     { type: String }
 }, { collection: 'roaddamage' });
 
 module.exports = aiDB.model('RoadDamage', roadDamageSchema);

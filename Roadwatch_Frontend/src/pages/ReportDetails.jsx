@@ -11,20 +11,21 @@ export default function ReportDetails() {
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    fetch(`${apiUrl}/api/reports`)
+    const targetId = id || localStorage.getItem('lastReportId');
+
+    const fetchUrl = targetId 
+      ? `${apiUrl}/api/reports/${targetId}?t=${Date.now()}`
+      : `${apiUrl}/api/reports?t=${Date.now()}`;
+
+    fetch(fetchUrl)
       .then(res => res.json())
       .then(result => {
-        if (result.success && result.data && result.data.length > 0) {
-          // If ID is provided, find that specific report. Otherwise, fallback to the latest one.
-          let selected = null;
-          const targetId = id || localStorage.getItem('lastReportId');
-          if (targetId) {
-            selected = result.data.find(r => r.id === targetId || r._id === targetId);
+        if (result.success && result.data) {
+          if (Array.isArray(result.data)) {
+            setReport(result.data[0] || null);
+          } else {
+            setReport(result.data);
           }
-          if (!selected) {
-            selected = result.data[0]; // default to latest
-          }
-          setReport(selected);
         }
         setLoading(false);
       })
@@ -192,6 +193,7 @@ Road Transparency & Accountability System`;
             </span>
             <span className="text-xs text-slate-400">
               Reported on {new Date(report.submittedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {report.updatedAt && ` (Updated: ${new Date(report.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })})`}
             </span>
           </div>
           <h1 className="text-xl md:text-3xl font-bold text-slate-900 dark:text-white mt-2 flex items-start gap-2">
@@ -266,6 +268,12 @@ Road Transparency & Accountability System`;
                 <span className="text-slate-500">Road Condition</span>
                 <span className="font-semibold text-slate-800 dark:text-white capitalize">{report.condition}</span>
               </div>
+              {report.testScore != null && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500">AI Test Score</span>
+                  <span className="font-semibold text-slate-800 dark:text-white">{Math.round(report.testScore)}/100</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -291,6 +299,12 @@ Road Transparency & Accountability System`;
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500">Road Type</span>
                 <span className="font-semibold text-slate-800 dark:text-white">{report.roadType}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500">Last Relayed</span>
+                <span className="font-semibold text-slate-800 dark:text-white">
+                  {report.lastRelayingDate ? new Date(report.lastRelayingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                </span>
               </div>
             </div>
           </div>

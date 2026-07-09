@@ -50,7 +50,7 @@ router.get('/reports', async (req, res) => {
         issueType:    d.issueType    || d.roadDamage || 'Pothole',
         roadDamage:   d.roadDamage   || d.issueType  || 'Pothole',
         roadType:     d.roadType     || 'Other Road',
-        location: loc.location || (loc.latitude ? `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}` : 'Coordinates: Lat/Lng'),
+        location: d.fullAddress || loc.location || (loc.latitude ? `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}` : 'Coordinates: Lat/Lng'),
         latitude:     loc.latitude,
         longitude:    loc.longitude,
         status:       d.status       || 'Pending',
@@ -65,13 +65,62 @@ router.get('/reports', async (req, res) => {
         lastRelayingDate: d.lastRelayingDate || null,
         roadName:        d.roadName        || 'Unnamed Road',
         confidence:      d.confidence      ?? null,
-        updatedAt:       d.updatedAt       || null
+        updatedAt:       d.updatedAt       || null,
+        testScore:       d.testScore       ?? null,
+        fullAddress:     d.fullAddress     || loc.location || null
       };
     });
 
     res.json({ success: true, data: reports });
   } catch (error) {
     console.error("Error fetching reports:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Route for retrieving a single report by ID directly from MongoDB (cache bypass)
+router.get('/reports/:id', async (req, res) => {
+  try {
+    const RoadDamage = require('../models/RoadDamage');
+    const Location = require('../models/Location');
+    const { id } = req.params;
+
+    const d = await RoadDamage.findById(id).lean();
+    if (!d) {
+      return res.status(404).json({ success: false, error: 'Report not found' });
+    }
+
+    const loc = d.locationId ? await Location.findById(d.locationId).lean() : {};
+
+    const report = {
+      id: `#RW-${d._id.toString().slice(-4).toUpperCase()}`,
+      _id: d._id,
+      issueType:    d.issueType    || d.roadDamage || 'Pothole',
+      roadDamage:   d.roadDamage   || d.issueType  || 'Pothole',
+      roadType:     d.roadType     || 'Other Road',
+      location: d.fullAddress || (loc ? loc.location : null) || (loc && loc.latitude ? `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}` : 'Coordinates: Lat/Lng'),
+      latitude:     loc ? loc.latitude : null,
+      longitude:    loc ? loc.longitude : null,
+      status:       d.status       || 'Pending',
+      supportCount: d.supportCount || 1,
+      authority:    d.authority    || 'Local Municipal Corporations',
+      submittedDate: d.submittedDate || (loc ? loc.timestamp : null) || new Date(),
+      severity:     d.severity     || 'Unknown',
+      condition:    d.condition    || 'Unknown',
+      contractor:      d.contractor      || 'Unknown',
+      budgetAllocated: d.budgetAllocated || 'N/A',
+      amountSpent:     d.amountSpent     || 'N/A',
+      lastRelayingDate: d.lastRelayingDate || null,
+      roadName:        d.roadName        || 'Unnamed Road',
+      confidence:      d.confidence      ?? null,
+      updatedAt:       d.updatedAt       || null,
+      testScore:       d.testScore       ?? null,
+      fullAddress:     d.fullAddress     || (loc ? loc.location : null) || null
+    };
+
+    res.json({ success: true, data: report });
+  } catch (error) {
+    console.error("Error fetching report by ID:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

@@ -286,6 +286,13 @@ exports.processAnalysis = async (req, res) => {
       existingComplaint.roadName        = roadName || existingComplaint.roadName || 'Unnamed Road';
       existingComplaint.confidence      = aiResult?.confidence ?? existingComplaint.confidence ?? null;
       existingComplaint.updatedAt       = new Date();
+
+      // Fetch latest test score from testscore collection or AI results
+      const TestScore = require('../models/TestScore');
+      const testScoreDoc = await TestScore.findOne({ locationId: existingComplaint.locationId }).sort({ _id: -1 });
+      existingComplaint.testScore = testScoreDoc ? testScoreDoc.testScore : (aiResult?.road_health_index ?? null);
+      existingComplaint.fullAddress = locationString || matchedLoc.location || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+
       await existingComplaint.save();
 
       const matchedLoc = nearbyLocations.find(l => l._id.toString() === existingComplaint.locationId.toString()) || {};
@@ -299,25 +306,27 @@ exports.processAnalysis = async (req, res) => {
         data: {
           _id: existingComplaint._id,
           id: `#RW-${existingComplaint._id.toString().slice(-4).toUpperCase()}`,
-          location: matchedLoc.location || locationString || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-          roadName,
+          location: existingComplaint.fullAddress || matchedLoc.location || locationString || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+          roadName: existingComplaint.roadName,
           highwayTag,
-          roadType: mappedRoadType,
+          roadType: existingComplaint.roadType,
           detailedClassification,
-          contractor: roadInfo?.contractor || 'Unknown',
-          budgetAllocated: roadInfo?.budgetAllocated || 'N/A',
-          amountSpent: roadInfo?.amountSpent || 'N/A',
-          lastRelayingDate: roadInfo?.lastRelayingDate || 'N/A',
-          authority: roadInfo?.authority || 'Unknown',
-          issueType,
-          severity: existingComplaint.severity || severity,
-          condition: existingComplaint.condition || condition,
-          roadDamage: issueType,
-          confidence: aiResult?.confidence ?? null,
+          contractor: existingComplaint.contractor,
+          budgetAllocated: existingComplaint.budgetAllocated,
+          amountSpent: existingComplaint.amountSpent,
+          lastRelayingDate: existingComplaint.lastRelayingDate,
+          authority: existingComplaint.authority,
+          issueType: existingComplaint.issueType,
+          severity: existingComplaint.severity,
+          condition: existingComplaint.condition,
+          roadDamage: existingComplaint.roadDamage,
+          confidence: existingComplaint.confidence,
           priorityLevel: aiResult?.priority_level || null,
           priorityScore: aiResult?.priority_score_normalized ?? null,
           severityScore: aiResult?.severity_score ?? null,
-          roadHealthIndex: aiResult?.road_health_index ?? null,
+          roadHealthIndex: existingComplaint.testScore,
+          testScore: existingComplaint.testScore,
+          fullAddress: existingComplaint.fullAddress,
           summary: aiResult?.summary || null,
           report: aiResult?.report || null,
           aiConnected: aiResult !== null,
@@ -333,6 +342,10 @@ exports.processAnalysis = async (req, res) => {
       longitude: lng,
       location: locationString || null
     });
+
+    // Fetch latest test score from testscore collection or AI results
+    const TestScore = require('../models/TestScore');
+    const testScoreDoc = await TestScore.findOne({ locationId: locationDoc._id }).sort({ _id: -1 });
 
     const newComplaint = await RoadDamage.create({
       locationId: locationDoc._id,
@@ -351,7 +364,9 @@ exports.processAnalysis = async (req, res) => {
       lastRelayingDate: roadInfo?.lastRelayingDate || null,
       roadName:        roadName || 'Unnamed Road',
       confidence:      aiResult?.confidence ?? null,
-      updatedAt:       new Date()
+      updatedAt:       new Date(),
+      testScore:       testScoreDoc ? testScoreDoc.testScore : (aiResult?.road_health_index ?? null),
+      fullAddress:     locationString || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
     });
 
     // Return combined response to frontend
@@ -361,30 +376,32 @@ exports.processAnalysis = async (req, res) => {
       data: {
         _id: newComplaint._id,
         id: `#RW-${newComplaint._id.toString().slice(-4).toUpperCase()}`,
-        location: locationString || null,
-        roadName,
+        location: newComplaint.fullAddress || locationString || null,
+        roadName: newComplaint.roadName,
         highwayTag,
-        roadType: mappedRoadType,
+        roadType: newComplaint.roadType,
         detailedClassification,
-        contractor: roadInfo?.contractor || 'Unknown',
-        budgetAllocated: roadInfo?.budgetAllocated || 'N/A',
-        amountSpent: roadInfo?.amountSpent || 'N/A',
-        lastRelayingDate: roadInfo?.lastRelayingDate || 'N/A',
-        authority: roadInfo?.authority || 'Unknown',
-        issueType,
-        severity,
-        condition,
-        roadDamage: issueType,
-        confidence: aiResult?.confidence ?? null,
+        contractor: newComplaint.contractor,
+        budgetAllocated: newComplaint.budgetAllocated,
+        amountSpent: newComplaint.amountSpent,
+        lastRelayingDate: newComplaint.lastRelayingDate,
+        authority: newComplaint.authority,
+        issueType: newComplaint.issueType,
+        severity: newComplaint.severity,
+        condition: newComplaint.condition,
+        roadDamage: newComplaint.roadDamage,
+        confidence: newComplaint.confidence,
         priorityLevel: aiResult?.priority_level || null,
         priorityScore: aiResult?.priority_score_normalized ?? null,
         severityScore: aiResult?.severity_score ?? null,
-        roadHealthIndex: aiResult?.road_health_index ?? null,
+        roadHealthIndex: newComplaint.testScore,
+        testScore: newComplaint.testScore,
+        fullAddress: newComplaint.fullAddress,
         summary: aiResult?.summary || null,
         report: aiResult?.report || null,
         aiConnected: aiResult !== null,
-        supportCount: 1,
-        status: 'Pending'
+        supportCount: newComplaint.supportCount,
+        status: newComplaint.status
       }
     });
 
