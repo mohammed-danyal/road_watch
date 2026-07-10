@@ -242,6 +242,14 @@ exports.processAnalysis = async (req, res) => {
     const severity = aiResult?.severity || 'Unknown';
     const condition = aiResult?.severity || 'Unknown';
 
+    // Determine fallback AI test score/road health index based on severity
+    let fallbackTestScore = 70;
+    const sevLower = (severity || '').toLowerCase();
+    if (sevLower === 'critical') fallbackTestScore = 25;
+    else if (sevLower === 'high') fallbackTestScore = 40;
+    else if (sevLower === 'medium' || sevLower === 'moderate') fallbackTestScore = 65;
+    else if (sevLower === 'low') fallbackTestScore = 85;
+
     if (!aiResult) {
       console.info('ℹ️  AI fallback active — using default AI values (damage: Unknown, severity: Unknown). Continuing with real road transparency data from MongoDB.');
     }
@@ -290,7 +298,7 @@ exports.processAnalysis = async (req, res) => {
       // Fetch latest test score from testscore collection or AI results
       const TestScore = require('../models/TestScore');
       const testScoreDoc = await TestScore.findOne({ locationId: existingComplaint.locationId }).sort({ _id: -1 });
-      existingComplaint.testScore = testScoreDoc ? testScoreDoc.testScore : (aiResult?.road_health_index ?? null);
+      existingComplaint.testScore = testScoreDoc ? testScoreDoc.testScore : (aiResult?.road_health_index ?? fallbackTestScore);
       existingComplaint.fullAddress = locationString || matchedLoc.location || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 
       await existingComplaint.save();
@@ -365,7 +373,7 @@ exports.processAnalysis = async (req, res) => {
       roadName:        roadName || 'Unnamed Road',
       confidence:      aiResult?.confidence ?? null,
       updatedAt:       new Date(),
-      testScore:       testScoreDoc ? testScoreDoc.testScore : (aiResult?.road_health_index ?? null),
+      testScore:       testScoreDoc ? testScoreDoc.testScore : (aiResult?.road_health_index ?? fallbackTestScore),
       fullAddress:     locationString || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
     });
 
