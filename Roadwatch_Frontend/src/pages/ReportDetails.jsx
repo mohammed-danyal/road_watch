@@ -13,7 +13,7 @@ export default function ReportDetails() {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const targetId = id || localStorage.getItem('lastReportId');
 
-    const fetchUrl = targetId 
+    const fetchUrl = targetId
       ? `${apiUrl}/api/reports/${targetId}?t=${Date.now()}`
       : `${apiUrl}/api/reports?t=${Date.now()}`;
 
@@ -47,12 +47,12 @@ export default function ReportDetails() {
   const generateCitizenLetter = (data) => {
     const authority = data?.authority || 'Local Municipal Corporations';
     const rawLocation = data?.location || '';
-    
+
     let area = 'Local Area';
     let city = 'Bengaluru';
     let state = 'Karnataka';
     let fullAddress = rawLocation || 'Coordinates: Lat/Lng';
-    
+
     if (rawLocation && rawLocation.includes(',')) {
       const parts = rawLocation.split(',').map(p => p.trim());
       const cleanParts = parts.filter(Boolean);
@@ -81,12 +81,12 @@ export default function ReportDetails() {
     const roadDamage = data?.issueType || data?.roadDamage || 'Pothole';
     const severity = data?.severity || 'High';
     const condition = data?.condition || 'Poor';
-    
+
     const contractor = data?.contractor || 'Local Road Contractor';
     const budgetAllocated = data?.budgetAllocated || '₹50 Lakhs';
     const amountSpent = data?.amountSpent || '₹42 Lakhs';
-    
-    const date = data?.submittedDate 
+
+    const date = data?.submittedDate
       ? new Date(data.submittedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
       : new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -213,7 +213,7 @@ Road Transparency & Accountability System`;
 
       {/* Responsive Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
+
         {/* Left Column: Complaint Letter */}
         <div className="lg:col-span-7 space-y-4">
           <div className="flex items-center justify-between">
@@ -223,11 +223,10 @@ Road Transparency & Accountability System`;
             </h3>
             <button
               onClick={handleCopy}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${
-                copied 
-                  ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
-                  : 'bg-brand-500 text-white hover:bg-brand-600'
-              }`}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${copied
+                ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                : 'bg-brand-500 text-white hover:bg-brand-600'
+                }`}
             >
               {copied ? 'Copied!' : 'Copy Letter Text'}
             </button>
@@ -240,7 +239,7 @@ Road Transparency & Accountability System`;
 
         {/* Right Column: Metadata Panels */}
         <div className="lg:col-span-5 space-y-6">
-          
+
           {/* Card 1: AI Diagnostics */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
             <h3 className="font-bold text-base text-slate-900 dark:text-white mb-4 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -268,12 +267,7 @@ Road Transparency & Accountability System`;
                 <span className="text-slate-500">Road Condition</span>
                 <span className="font-semibold text-slate-800 dark:text-white capitalize">{report.condition}</span>
               </div>
-              {report.testScore != null && (
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500">AI Test Score</span>
-                  <span className="font-semibold text-slate-800 dark:text-white">{Math.round(report.testScore)}/100</span>
-                </div>
-              )}
+
             </div>
           </div>
 
